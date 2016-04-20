@@ -13,7 +13,7 @@ with IDEA: Git - rebase fork or manually:
     git fetch upstream
     git checkout master # just in case
     git merge upstream/master
-    git push --tags origin master
+    git push --tags
 
 
 ## building
