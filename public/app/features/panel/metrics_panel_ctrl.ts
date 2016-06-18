@@ -12,9 +12,10 @@ import * as dateMath from 'app/core/utils/datemath';
 import {Subject} from 'vendor/npm/rxjs/Subject';
 
 class MetricsPanelCtrl extends PanelCtrl {
-  error: boolean;
+  error: any;
   loading: boolean;
   datasource: any;
+  datasourceName: any;
   $q: any;
   $timeout: any;
   datasourceSrv: any;
@@ -27,7 +28,6 @@ class MetricsPanelCtrl extends PanelCtrl {
   resolution: any;
   timeInfo: any;
   skipDataOnInit: boolean;
-  datasources: any[];
   dataStream: any;
   dataSubscription: any;
 
@@ -52,7 +52,6 @@ class MetricsPanelCtrl extends PanelCtrl {
   private onInitMetricsPanelEditMode() {
     this.addEditorTab('Metrics', 'public/app/partials/metrics.html');
     this.addEditorTab('Time range', 'public/app/features/panel/partials/panelTime.html');
-    this.datasources = this.datasourceSrv.getMetricSources();
   }
 
   private onMetricsPanelRefresh() {
@@ -87,8 +86,14 @@ class MetricsPanelCtrl extends PanelCtrl {
     .then(this.issueQueries.bind(this))
     .then(this.handleQueryResult.bind(this))
     .catch(err => {
+      // if cancelled  keep loading set to true
+      if (err.cancelled) {
+        console.log('Panel request cancelled', err);
+        return;
+      }
+
       this.loading = false;
-      this.error = err.message || "Timeseries data request error";
+      this.error = err.message || "Request Error";
       this.inspector = {error: err};
       this.events.emit('data-error', err);
       console.log('Panel data error:', err);
@@ -96,7 +101,6 @@ class MetricsPanelCtrl extends PanelCtrl {
   }
 
   setTimeQueryStart() {
-    this.timing = {};
     this.timing.queryStart = new Date().getTime();
   }
 
@@ -201,6 +205,11 @@ class MetricsPanelCtrl extends PanelCtrl {
       this.panel.snapshotData = result.data;
     }
 
+    if (!result || !result.data) {
+      console.log('Data source query result invalid, missing data field:', result);
+      result = {data: []};
+    }
+
     return this.events.emit('data-received', result.data);
   }
 
@@ -246,18 +255,9 @@ class MetricsPanelCtrl extends PanelCtrl {
     }
 
     this.panel.datasource = datasource.value;
+    this.datasourceName = datasource.name;
     this.datasource = null;
     this.refresh();
-  }
-
-  addDataQuery(datasource) {
-    var target: any = {};
-
-    if (datasource) {
-      target.datasource = datasource.name;
-    }
-
-    this.panel.targets.push(target);
   }
 }
 
