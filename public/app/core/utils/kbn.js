@@ -9,6 +9,10 @@ function($, _, moment) {
   var kbn = {};
   kbn.valueFormats = {};
 
+  kbn.regexEscape = function(value) {
+    return value.replace(/[\\^$*+?.()|[\]{}\/]/g, '\\$&');
+  };
+
   ///// HELPER FUNCTIONS /////
 
   kbn.round_interval = function(interval) {
@@ -170,7 +174,10 @@ function($, _, moment) {
         lowLimitMs = kbn.interval_to_ms(lowLimitInterval);
       }
       else {
-        return userInterval;
+        return {
+          intervalMs: kbn.interval_to_ms(userInterval),
+          interval: userInterval,
+        };
       }
     }
 
@@ -179,7 +186,10 @@ function($, _, moment) {
       intervalMs = lowLimitMs;
     }
 
-    return kbn.secondsToHms(intervalMs / 1000);
+    return {
+      intervalMs: intervalMs,
+      interval: kbn.secondsToHms(intervalMs / 1000),
+    };
   };
 
   kbn.describe_interval = function (string) {
@@ -499,6 +509,19 @@ function($, _, moment) {
 
   kbn.valueFormats.s = function(size, decimals, scaledDecimals) {
     if (size === null) { return ""; }
+
+    // Less than 1 µs, devide in ns
+    if (Math.abs(size) < 0.000001) {
+      return kbn.toFixedScaled(size * 1.e9, decimals, scaledDecimals - decimals, -9, " ns");
+    }
+    // Less than 1 ms, devide in µs
+    if (Math.abs(size) < 0.001) {
+      return kbn.toFixedScaled(size * 1.e6, decimals, scaledDecimals - decimals, -6, " µs");
+    }
+    // Less than 1 second, devide in ms
+    if (Math.abs(size) < 1) {
+      return kbn.toFixedScaled(size * 1.e3, decimals, scaledDecimals - decimals, -3, " ms");
+    }
 
     if (Math.abs(size) < 60) {
       return kbn.toFixed(size, decimals) + " s";
