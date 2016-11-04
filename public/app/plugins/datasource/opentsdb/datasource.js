@@ -244,7 +244,7 @@ function (angular, _, dateMath) {
 
       var interpolated;
       try {
-        interpolated = templateSrv.replace(query);
+        interpolated = templateSrv.replace(query, {}, 'distributed');
       }
       catch (err) {
         return $q.reject(err);
@@ -423,6 +423,10 @@ function (angular, _, dateMath) {
             query.tags[tag_key] = templateSrv.replace(query.tags[tag_key], options.scopedVars, 'pipe');
           }
         }
+      }
+
+      if (target.explicitTags) {
+        query.explicitTags = true;
       }
 
       return query;
