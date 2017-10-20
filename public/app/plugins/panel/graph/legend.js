@@ -2,8 +2,6 @@ define([
   'angular',
   'lodash',
   'jquery',
-  'jquery.flot',
-  'jquery.flot.time',
 ],
 function (angular, _, $) {
   'use strict';
@@ -47,7 +45,8 @@ function (angular, _, $) {
             popoverSrv.show({
               element: el[0],
               position: 'bottom center',
-              template: '<gf-color-picker></gf-color-picker>',
+              template: '<series-color-picker series="series" onToggleAxis="toggleAxis" onColorChange="colorSelected">' +
+                '</series-color-picker>',
               openOn: 'hover',
               model: {
                 series: series,
@@ -81,13 +80,13 @@ function (angular, _, $) {
           if (panel.legend.sortDesc === false) {
             panel.legend.sort = null;
             panel.legend.sortDesc = null;
-            render();
+            ctrl.render();
             return;
           }
 
           panel.legend.sortDesc = !panel.legend.sortDesc;
           panel.legend.sort = stat;
-          render();
+          ctrl.render();
         }
 
         function getTableHeaderHtml(statName) {
