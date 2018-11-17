@@ -27,7 +27,7 @@ bra run
 this runs all tests and runs the program.
 then use Grafana at [localhost:3000](http://localhost:3000/)
 
-User: wolle, Password: w123
+User: wolle, Password: w1234
 
 ## tests
 
