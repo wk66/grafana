@@ -1,4 +1,4 @@
-﻿import { DashboardSearchHit } from './search';
+import { TimeZone } from '@grafana/data';
 
 export interface OrgUser {
   avatarUrl: string;
@@ -47,5 +47,19 @@ export interface UsersState {
 }
 
 export interface UserState {
-  starredDashboards: DashboardSearchHit[];
+  orgId: number;
+  timeZone: TimeZone;
+}
+
+export interface UserSession {
+  id: number;
+  createdAt: string;
+  clientIp: string;
+  isActive: boolean;
+  seenAt: string;
+  browser: string;
+  browserVersion: string;
+  os: string;
+  osVersion: string;
+  device: string;
 }

@@ -1,17 +1,17 @@
 import React, { PureComponent } from 'react';
 import { hot } from 'react-hot-loader';
 import { connect } from 'react-redux';
-import Remarkable from 'remarkable';
-import PageHeader from 'app/core/components/PageHeader/PageHeader';
-import PageLoader from 'app/core/components/PageLoader/PageLoader';
+import { renderMarkdown } from '@grafana/data';
+import Page from 'app/core/components/Page/Page';
 import UsersActionBar from './UsersActionBar';
 import UsersTable from './UsersTable';
 import InviteesTable from './InviteesTable';
-import { Invitee, NavModel, OrgUser } from 'app/types';
+import { Invitee, OrgUser } from 'app/types';
 import appEvents from 'app/core/app_events';
-import { loadUsers, loadInvitees, revokeInvite, setUsersSearchQuery, updateUser, removeUser } from './state/actions';
-import { getNavModel } from '../../core/selectors/navModel';
+import { loadUsers, loadInvitees, setUsersSearchQuery, updateUser, removeUser } from './state/actions';
+import { getNavModel } from 'app/core/selectors/navModel';
 import { getInvitees, getUsers, getUsersSearchQuery } from './state/selectors';
+import { NavModel } from '@grafana/data';
 
 export interface Props {
   navModel: NavModel;
@@ -25,7 +25,6 @@ export interface Props {
   setUsersSearchQuery: typeof setUsersSearchQuery;
   updateUser: typeof updateUser;
   removeUser: typeof removeUser;
-  revokeInvite: typeof revokeInvite;
 }
 
 export interface State {
@@ -35,12 +34,11 @@ export interface State {
 export class UsersListPage extends PureComponent<Props, State> {
   externalUserMngInfoHtml: string;
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     if (this.props.externalUserMngInfo) {
-      const markdownRenderer = new Remarkable();
-      this.externalUserMngInfoHtml = markdownRenderer.render(this.props.externalUserMngInfo);
+      this.externalUserMngInfoHtml = renderMarkdown(this.props.externalUserMngInfo);
     }
 
     this.state = {
@@ -61,13 +59,13 @@ export class UsersListPage extends PureComponent<Props, State> {
     return await this.props.loadInvitees();
   }
 
-  onRoleChange = (role, user) => {
+  onRoleChange = (role: string, user: OrgUser) => {
     const updatedUser = { ...user, role: role };
 
     this.props.updateUser(updatedUser);
   };
 
-  onRemoveUser = user => {
+  onRemoveUser = (user: OrgUser) => {
     appEvents.emit('confirm-modal', {
       title: 'Delete',
       text: 'Are you sure you want to delete user ' + user.login + '?',
@@ -77,10 +75,6 @@ export class UsersListPage extends PureComponent<Props, State> {
         this.props.removeUser(user.userId);
       },
     });
-  };
-
-  onRevokeInvite = code => {
-    this.props.revokeInvite(code);
   };
 
   onShowInvites = () => {
@@ -93,7 +87,7 @@ export class UsersListPage extends PureComponent<Props, State> {
     const { invitees, users } = this.props;
 
     if (this.state.showInvites) {
-      return <InviteesTable invitees={invitees} onRevokeInvite={code => this.onRevokeInvite(code)} />;
+      return <InviteesTable invitees={invitees} />;
     } else {
       return (
         <UsersTable
@@ -110,21 +104,22 @@ export class UsersListPage extends PureComponent<Props, State> {
     const externalUserMngInfoHtml = this.externalUserMngInfoHtml;
 
     return (
-      <div>
-        <PageHeader model={navModel} />
-        <div className="page-container page-body">
-          <UsersActionBar onShowInvites={this.onShowInvites} showInvites={this.state.showInvites} />
-          {externalUserMngInfoHtml && (
-            <div className="grafana-info-box" dangerouslySetInnerHTML={{ __html: externalUserMngInfoHtml }} />
-          )}
-          {hasFetched ? this.renderTable() : <PageLoader pageName="Users" />}
-        </div>
-      </div>
+      <Page navModel={navModel}>
+        <Page.Contents isLoading={!hasFetched}>
+          <>
+            <UsersActionBar onShowInvites={this.onShowInvites} showInvites={this.state.showInvites} />
+            {externalUserMngInfoHtml && (
+              <div className="grafana-info-box" dangerouslySetInnerHTML={{ __html: externalUserMngInfoHtml }} />
+            )}
+            {hasFetched && this.renderTable()}
+          </>
+        </Page.Contents>
+      </Page>
     );
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   return {
     navModel: getNavModel(state.navIndex, 'users'),
     users: getUsers(state.users),
@@ -141,7 +136,11 @@ const mapDispatchToProps = {
   setUsersSearchQuery,
   updateUser,
   removeUser,
-  revokeInvite,
 };
 
-export default hot(module)(connect(mapStateToProps, mapDispatchToProps)(UsersListPage));
+export default hot(module)(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )(UsersListPage)
+);

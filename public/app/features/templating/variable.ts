@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import { assignModelProperties } from 'app/core/utils/model_utils';
 
 /*
@@ -15,19 +16,31 @@ export const variableRegexExec = (variableString: string) => {
 };
 
 export interface Variable {
-  setValue(option);
-  updateOptions();
-  dependsOn(variable);
-  setValueFromUrl(urlValue);
-  getValueForUrl();
-  getSaveModel();
+  setValue(option: any): any;
+  updateOptions(): any;
+  dependsOn(variable: any): any;
+  setValueFromUrl(urlValue: any): any;
+  getValueForUrl(): any;
+  getSaveModel(): any;
 }
 
-export let variableTypes = {};
+export type CtorType = new (...args: any[]) => {};
+
+export interface VariableTypes {
+  [key: string]: {
+    name: string;
+    ctor: CtorType;
+    description: string;
+    supportsMulti?: boolean;
+  };
+}
+
+export let variableTypes: VariableTypes = {};
 export { assignModelProperties };
 
 export function containsVariable(...args: any[]) {
   const variableName = args[args.length - 1];
+  args[0] = _.isString(args[0]) ? args[0] : Object['values'](args[0]).join(' ');
   const variableString = args.slice(0, -1).join(' ');
   const matches = variableString.match(variableRegex);
   const isMatchingVariable =

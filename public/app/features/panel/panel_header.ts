@@ -1,5 +1,5 @@
-import $ from 'jquery';
 import { coreModule } from 'app/core/core';
+import { AngularPanelMenuItem } from '@grafana/ui';
 
 const template = `
 <span class="panel-title">
@@ -13,7 +13,7 @@ const template = `
   <span class="panel-time-info" ng-if="ctrl.timeInfo"><i class="fa fa-clock-o"></i> {{ctrl.timeInfo}}</span>
 </span>`;
 
-function renderMenuItem(item, ctrl) {
+function renderMenuItem(item: AngularPanelMenuItem, ctrl: any) {
   let html = '';
   let listItemClass = '';
 
@@ -35,7 +35,7 @@ function renderMenuItem(item, ctrl) {
   }
 
   html += `><i class="${item.icon}"></i>`;
-  html += `<span class="dropdown-item-text">${item.text}</span>`;
+  html += `<span class="dropdown-item-text" aria-label="${item.text} panel menu item">${item.text}</span>`;
 
   if (item.shortcut) {
     html += `<span class="dropdown-menu-item-shortcut">${item.shortcut}</span>`;
@@ -55,7 +55,7 @@ function renderMenuItem(item, ctrl) {
   return html;
 }
 
-function createMenuTemplate(ctrl) {
+function createMenuTemplate(ctrl: any) {
   let html = '';
 
   for (const item of ctrl.getMenu()) {
@@ -66,16 +66,16 @@ function createMenuTemplate(ctrl) {
 }
 
 /** @ngInject */
-function panelHeader($compile) {
+function panelHeader($compile: any) {
   return {
     restrict: 'E',
     template: template,
-    link: (scope, elem, attrs) => {
+    link: (scope: any, elem: any, attrs: any) => {
       const menuElem = elem.find('.panel-menu');
-      let menuScope;
-      let isDragged;
+      let menuScope: any;
+      let isDragged: boolean;
 
-      elem.click(evt => {
+      elem.click((evt: any) => {
         const targetClass = evt.target.className;
 
         // remove existing scope
@@ -93,47 +93,20 @@ function panelHeader($compile) {
         }
       });
 
-      elem.find('.panel-menu-toggle').click(() => {
-        togglePanelStackPosition();
-      });
-
-      function togglePanelMenu(e) {
+      function togglePanelMenu(e: any) {
         if (!isDragged) {
           e.stopPropagation();
-          togglePanelStackPosition();
           elem.find('[data-toggle=dropdown]').dropdown('toggle');
         }
       }
 
-      /**
-       * Hack for adding special class 'dropdown-menu-open' to the panel.
-       * This class sets z-index for panel and prevents menu overlapping.
-       */
-      function togglePanelStackPosition() {
-        const menuOpenClass = 'dropdown-menu-open';
-        const panelGridClass = '.react-grid-item.panel';
-
-        let panelElem = elem
-          .find('[data-toggle=dropdown]')
-          .parentsUntil('.panel')
-          .parent();
-        const menuElem = elem.find('[data-toggle=dropdown]').parent();
-        panelElem = panelElem && panelElem.length ? panelElem[0] : undefined;
-        if (panelElem) {
-          panelElem = $(panelElem);
-          $(panelGridClass).removeClass(menuOpenClass);
-          const state = !menuElem.hasClass('open');
-          panelElem.toggleClass(menuOpenClass, state);
-        }
-      }
-
-      let mouseX, mouseY;
-      elem.mousedown(e => {
+      let mouseX: number, mouseY: number;
+      elem.mousedown((e: any) => {
         mouseX = e.pageX;
         mouseY = e.pageY;
       });
 
-      elem.mouseup(e => {
+      elem.mouseup((e: any) => {
         if (mouseX === e.pageX && mouseY === e.pageY) {
           isDragged = false;
         } else {

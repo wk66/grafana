@@ -1,13 +1,15 @@
 import $ from 'jquery';
 import _ from 'lodash';
 
-import config from 'app/core/config';
 import coreModule from 'app/core/core_module';
 import appEvents from 'app/core/app_events';
 import { getExploreUrl } from 'app/core/utils/explore';
+import { store } from 'app/store/store';
 
 import Mousetrap from 'mousetrap';
 import 'mousetrap-global-bind';
+import { ContextSrv } from './context_srv';
+import { ILocationService, ITimeoutService } from 'angular';
 
 export class KeybindingSrv {
   helpModal: boolean;
@@ -16,12 +18,12 @@ export class KeybindingSrv {
 
   /** @ngInject */
   constructor(
-    private $rootScope,
-    private $location,
-    private $timeout,
-    private datasourceSrv,
-    private timeSrv,
-    private contextSrv
+    private $rootScope: any,
+    private $location: ILocationService,
+    private $timeout: ITimeoutService,
+    private datasourceSrv: any,
+    private timeSrv: any,
+    private contextSrv: ContextSrv
   ) {
     // clear out all shortcuts on route change
     $rootScope.$on('$routeChangeSuccess', () => {
@@ -37,23 +39,15 @@ export class KeybindingSrv {
   }
 
   setupGlobal() {
-    this.bind(['?', 'h'], this.showHelpModal);
-    this.bind('g h', this.goToHome);
-    this.bind('g a', this.openAlerting);
-    this.bind('g p', this.goToProfile);
-    this.bind('s s', this.openSearchStarred);
-    this.bind('s o', this.openSearch);
-    this.bind('s t', this.openSearchTags);
-    this.bind('f', this.openSearch);
-    this.bindGlobal('esc', this.exit);
-  }
-
-  openSearchStarred() {
-    appEvents.emit('show-dash-search', { starred: true });
-  }
-
-  openSearchTags() {
-    appEvents.emit('show-dash-search', { tagsMode: true });
+    if (!(this.$location.path() === '/login')) {
+      this.bind(['?', 'h'], this.showHelpModal);
+      this.bind('g h', this.goToHome);
+      this.bind('g a', this.openAlerting);
+      this.bind('g p', this.goToProfile);
+      this.bind('s o', this.openSearch);
+      this.bind('f', this.openSearch);
+      this.bindGlobal('esc', this.exit);
+    }
   }
 
   openSearch() {
@@ -77,7 +71,7 @@ export class KeybindingSrv {
   }
 
   exit() {
-    const popups = $('.popover.in');
+    const popups = $('.popover.in, .slate-typeahead');
     if (popups.length > 0) {
       return;
     }
@@ -104,7 +98,7 @@ export class KeybindingSrv {
     }
 
     if (search.fullscreen) {
-      this.$rootScope.appEvent('panel-change-view', { fullscreen: false, edit: false });
+      appEvents.emit('panel-change-view', { fullscreen: false, edit: false });
       return;
     }
 
@@ -113,10 +107,10 @@ export class KeybindingSrv {
     }
   }
 
-  bind(keyArg, fn) {
+  bind(keyArg: string | string[], fn: () => void) {
     Mousetrap.bind(
       keyArg,
-      evt => {
+      (evt: any) => {
         evt.preventDefault();
         evt.stopPropagation();
         evt.returnValue = false;
@@ -126,10 +120,10 @@ export class KeybindingSrv {
     );
   }
 
-  bindGlobal(keyArg, fn) {
+  bindGlobal(keyArg: string, fn: () => void) {
     Mousetrap.bindGlobal(
       keyArg,
-      evt => {
+      (evt: any) => {
         evt.preventDefault();
         evt.stopPropagation();
         evt.returnValue = false;
@@ -137,6 +131,10 @@ export class KeybindingSrv {
       },
       'keydown'
     );
+  }
+
+  unbind(keyArg: string, keyType?: string) {
+    Mousetrap.unbind(keyArg, keyType);
   }
 
   showDashEditView() {
@@ -144,14 +142,14 @@ export class KeybindingSrv {
     this.$location.search(search);
   }
 
-  setupDashboardBindings(scope, dashboard) {
+  setupDashboardBindings(scope: any, dashboard: any) {
     this.bind('mod+o', () => {
       dashboard.graphTooltip = (dashboard.graphTooltip + 1) % 3;
       appEvents.emit('graph-hover-clear');
       dashboard.startRefresh();
     });
 
-    this.bind('mod+s', e => {
+    this.bind('mod+s', () => {
       scope.appEvent('save-dashboard');
     });
 
@@ -164,17 +162,17 @@ export class KeybindingSrv {
     });
 
     this.bind('t left', () => {
-      scope.appEvent('shift-time-backward');
+      scope.appEvent('shift-time', -1);
     });
 
     this.bind('t right', () => {
-      scope.appEvent('shift-time-forward');
+      scope.appEvent('shift-time', 1);
     });
 
     // edit panel
     this.bind('e', () => {
       if (dashboard.meta.focusPanelId && dashboard.meta.canEdit) {
-        this.$rootScope.appEvent('panel-change-view', {
+        appEvents.emit('panel-change-view', {
           fullscreen: true,
           edit: true,
           panelId: dashboard.meta.focusPanelId,
@@ -186,7 +184,7 @@ export class KeybindingSrv {
     // view panel
     this.bind('v', () => {
       if (dashboard.meta.focusPanelId) {
-        this.$rootScope.appEvent('panel-change-view', {
+        appEvents.emit('panel-change-view', {
           fullscreen: true,
           edit: null,
           panelId: dashboard.meta.focusPanelId,
@@ -196,7 +194,7 @@ export class KeybindingSrv {
     });
 
     // jump to explore if permissions allow
-    if (this.contextSrv.isEditor && config.exploreEnabled) {
+    if (this.contextSrv.hasAccessToExplore()) {
       this.bind('x', async () => {
         if (dashboard.meta.focusPanelId) {
           const panel = dashboard.getPanelById(dashboard.meta.focusPanelId);
@@ -212,9 +210,7 @@ export class KeybindingSrv {
     // delete panel
     this.bind('p r', () => {
       if (dashboard.meta.focusPanelId && dashboard.meta.canEdit) {
-        this.$rootScope.appEvent('panel-remove', {
-          panelId: dashboard.meta.focusPanelId,
-        });
+        appEvents.emit('remove-panel', dashboard.meta.focusPanelId);
         dashboard.meta.focusPanelId = 0;
       }
     });
@@ -236,7 +232,7 @@ export class KeybindingSrv {
         shareScope.dashboard = dashboard;
 
         appEvents.emit('show-modal', {
-          src: 'public/app/features/dashboard/partials/shareModal.html',
+          src: 'public/app/features/dashboard/components/ShareModal/template.html',
           scope: shareScope,
         });
       }
@@ -249,9 +245,14 @@ export class KeybindingSrv {
         if (panelInfo.panel.legend) {
           const panelRef = dashboard.getPanelById(dashboard.meta.focusPanelId);
           panelRef.legend.show = !panelRef.legend.show;
-          panelRef.refresh();
+          panelRef.render();
         }
       }
+    });
+
+    // toggle all panel legends
+    this.bind('d l', () => {
+      dashboard.toggleLegendsForAll();
     });
 
     // collapse all rows
@@ -264,7 +265,7 @@ export class KeybindingSrv {
       dashboard.expandRows();
     });
 
-    this.bind('d n', e => {
+    this.bind('d n', () => {
       this.$location.url('/dashboard/new');
     });
 
@@ -287,9 +288,25 @@ export class KeybindingSrv {
     //Autofit panels
     this.bind('d a', () => {
       // this has to be a full page reload
-      window.location.href = window.location.href + '&autofitpanels';
+      const queryParams = store.getState().location.query;
+      const newUrlParam = queryParams.autofitpanels ? '' : '&autofitpanels';
+      window.location.href = window.location.href + newUrlParam;
     });
   }
 }
 
 coreModule.service('keybindingSrv', KeybindingSrv);
+
+/**
+ * Code below exports the service to react components
+ */
+
+let singletonInstance: KeybindingSrv;
+
+export function setKeybindingSrv(instance: KeybindingSrv) {
+  singletonInstance = instance;
+}
+
+export function getKeybindingSrv(): KeybindingSrv {
+  return singletonInstance;
+}

@@ -1,31 +1,34 @@
-import config from 'app/core/config';
 import _ from 'lodash';
-import $ from 'jquery';
+import { sanitize, escapeHtml } from 'app/core/utils/text';
+import { renderMarkdown } from '@grafana/data';
+
+import config from 'app/core/config';
 import { profiler } from 'app/core/core';
+import { Emitter } from 'app/core/core';
+import getFactors from 'app/core/utils/factors';
 import {
   duplicatePanel,
+  removePanel,
   copyPanel as copyPanelUtil,
   editPanelJson as editPanelJsonUtil,
   sharePanel as sharePanelUtil,
+  calculateInnerPanelHeight,
 } from 'app/features/dashboard/utils/panel';
-import Remarkable from 'remarkable';
-import { GRID_CELL_HEIGHT, GRID_CELL_VMARGIN } from 'app/core/constants';
 
-const TITLE_HEIGHT = 27;
-const PANEL_BORDER = 2;
-
-import { Emitter } from 'app/core/core';
+import { GRID_COLUMN_COUNT } from 'app/core/constants';
+import { auto } from 'angular';
+import { TemplateSrv } from '../templating/template_srv';
+import { LinkSrv } from './panellinks/link_srv';
 
 export class PanelCtrl {
   panel: any;
   error: any;
   dashboard: any;
-  editorTabIndex: number;
   pluginName: string;
   pluginId: string;
   editorTabs: any;
   $scope: any;
-  $injector: any;
+  $injector: auto.IInjectorService;
   $location: any;
   $timeout: any;
   inspector: any;
@@ -33,17 +36,18 @@ export class PanelCtrl {
   height: any;
   containerHeight: any;
   events: Emitter;
-  timing: any;
   loading: boolean;
+  timing: any;
+  maxPanelsPerRowOptions: number[];
 
-  constructor($scope, $injector) {
+  constructor($scope: any, $injector: auto.IInjectorService) {
     this.$injector = $injector;
     this.$location = $injector.get('$location');
     this.$scope = $scope;
     this.$timeout = $injector.get('$timeout');
-    this.editorTabIndex = 0;
+    this.editorTabs = [];
     this.events = this.panel.events;
-    this.timing = {};
+    this.timing = {}; // not used but here to not break plugins
 
     const plugin = config.panels[this.panel.type];
     if (plugin) {
@@ -60,21 +64,21 @@ export class PanelCtrl {
   }
 
   renderingCompleted() {
-    profiler.renderingCompleted(this.panel.id, this.timing);
+    profiler.renderingCompleted();
   }
 
   refresh() {
     this.panel.refresh();
   }
 
-  publishAppEvent(evtName, evt) {
+  publishAppEvent(evtName: string, evt: any) {
     this.$scope.$root.appEvent(evtName, evt);
   }
 
-  changeView(fullscreen, edit) {
+  changeView(fullscreen: boolean, edit: boolean) {
     this.publishAppEvent('panel-change-view', {
-      fullscreen: fullscreen,
-      edit: edit,
+      fullscreen,
+      edit,
       panelId: this.panel.id,
     });
   }
@@ -92,30 +96,14 @@ export class PanelCtrl {
   }
 
   initEditMode() {
-    this.editorTabs = [];
-    this.addEditorTab('General', 'public/app/partials/panelgeneral.html');
-
-    this.editModeInitiated = true;
-    this.events.emit('init-edit-mode', null);
-
-    const urlTab = (this.$injector.get('$routeParams').tab || '').toLowerCase();
-    if (urlTab) {
-      this.editorTabs.forEach((tab, i) => {
-        if (tab.title.toLowerCase() === urlTab) {
-          this.editorTabIndex = i;
-        }
-      });
+    if (!this.editModeInitiated) {
+      this.editModeInitiated = true;
+      this.events.emit('init-edit-mode', null);
+      this.maxPanelsPerRowOptions = getFactors(GRID_COLUMN_COUNT);
     }
   }
 
-  changeTab(newIndex) {
-    this.editorTabIndex = newIndex;
-    const route = this.$injector.get('$route');
-    route.current.params.tab = this.editorTabs[newIndex].title.toLowerCase();
-    route.updateParams();
-  }
-
-  addEditorTab(title, directiveFn, index?, icon?) {
+  addEditorTab(title: string, directiveFn: any, index?: number, icon?: any) {
     const editorTab = { title, directiveFn, icon };
 
     if (_.isString(directiveFn)) {
@@ -136,7 +124,7 @@ export class PanelCtrl {
     menu.push({
       text: 'View',
       click: 'ctrl.viewPanel();',
-      icon: 'fa fa-fw fa-eye',
+      icon: 'gicon gicon-viewer',
       shortcut: 'v',
     });
 
@@ -145,7 +133,7 @@ export class PanelCtrl {
         text: 'Edit',
         click: 'ctrl.editPanel();',
         role: 'Editor',
-        icon: 'fa fa-fw fa-edit',
+        icon: 'gicon gicon-editor',
         shortcut: 'e',
       });
     }
@@ -209,7 +197,7 @@ export class PanelCtrl {
   }
 
   // Override in sub-class to add items before extended menu
-  getAdditionalMenuItems() {
+  getAdditionalMenuItems(): any[] {
     return [];
   }
 
@@ -217,30 +205,12 @@ export class PanelCtrl {
     return this.dashboard.meta.fullscreen && !this.panel.fullscreen;
   }
 
-  calculatePanelHeight() {
-    if (this.panel.fullscreen) {
-      const docHeight = $('.react-grid-layout').height();
-      const editHeight = Math.floor(docHeight * 0.35);
-      const fullscreenHeight = Math.floor(docHeight * 0.8);
-      this.containerHeight = this.panel.isEditing ? editHeight : fullscreenHeight;
-    } else {
-      this.containerHeight = this.panel.gridPos.h * GRID_CELL_HEIGHT + (this.panel.gridPos.h - 1) * GRID_CELL_VMARGIN;
-    }
-
-    if (this.panel.soloMode) {
-      this.containerHeight = $(window).height();
-    }
-
-    // hacky solution
-    if (this.panel.isEditing && !this.editModeInitiated) {
-      this.initEditMode();
-    }
-
-    this.height = this.containerHeight - (PANEL_BORDER + TITLE_HEIGHT);
+  calculatePanelHeight(containerHeight: number) {
+    this.containerHeight = containerHeight;
+    this.height = calculateInnerPanelHeight(this.panel, containerHeight);
   }
 
-  render(payload?) {
-    this.timing.renderStart = new Date().getTime();
+  render(payload?: any) {
     this.events.emit('render', payload);
   }
 
@@ -249,9 +219,7 @@ export class PanelCtrl {
   }
 
   removePanel() {
-    this.publishAppEvent('panel-remove', {
-      panelId: this.panel.id,
-    });
+    removePanel(this.dashboard, this.panel, true);
   }
 
   editPanelJson() {
@@ -279,51 +247,38 @@ export class PanelCtrl {
     return '';
   }
 
-  getInfoContent(options) {
+  getInfoContent(options: { mode: string }) {
     let markdown = this.panel.description;
 
     if (options.mode === 'tooltip') {
       markdown = this.error || this.panel.description;
     }
 
-    const linkSrv = this.$injector.get('linkSrv');
-    const sanitize = this.$injector.get('$sanitize');
-    const templateSrv = this.$injector.get('templateSrv');
+    const linkSrv: LinkSrv = this.$injector.get('linkSrv');
+    const templateSrv: TemplateSrv = this.$injector.get('templateSrv');
     const interpolatedMarkdown = templateSrv.replace(markdown, this.panel.scopedVars);
-    let html = '<div class="markdown-html">';
+    let html = '<div class="markdown-html panel-info-content">';
 
-    html += new Remarkable().render(interpolatedMarkdown);
+    const md = renderMarkdown(interpolatedMarkdown);
+    html += config.disableSanitizeHtml ? md : sanitize(md);
 
     if (this.panel.links && this.panel.links.length > 0) {
-      html += '<ul>';
+      html += '<ul class="panel-info-corner-links">';
       for (const link of this.panel.links) {
-        const info = linkSrv.getPanelLinkAnchorInfo(link, this.panel.scopedVars);
+        const info = linkSrv.getDataLinkUIModel(link, this.panel.scopedVars);
         html +=
           '<li><a class="panel-menu-link" href="' +
-          info.href +
+          escapeHtml(info.href) +
           '" target="' +
-          info.target +
+          escapeHtml(info.target) +
           '">' +
-          info.title +
+          escapeHtml(info.title) +
           '</a></li>';
       }
       html += '</ul>';
     }
 
     html += '</div>';
-    return sanitize(html);
-  }
-
-  openInspector() {
-    const modalScope = this.$scope.$new();
-    modalScope.panel = this.panel;
-    modalScope.dashboard = this.dashboard;
-    modalScope.panelInfoHtml = this.getInfoContent({ mode: 'inspector' });
-
-    modalScope.inspector = $.extend(true, {}, this.inspector);
-    this.publishAppEvent('show-modal', {
-      src: 'public/app/features/dashboard/partials/inspector.html',
-      scope: modalScope,
-    });
+    return html;
   }
 }

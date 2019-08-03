@@ -110,6 +110,9 @@ Macro example | Description
 *$__unixEpochFilter(dateColumn)* | Will be replaced by a time range filter using the specified column name with times represented as unix timestamp. For example, *dateColumn > 1494410783 AND dateColumn < 1494497183*
 *$__unixEpochFrom()* | Will be replaced by the start of the currently active time selection as unix timestamp. For example, *1494410783*
 *$__unixEpochTo()* | Will be replaced by the end of the currently active time selection as unix timestamp. For example, *1494497183*
+*$__unixEpochNanoFilter(dateColumn)* | Will be replaced by a time range filter using the specified column name with times represented as nanosecond timestamp. For example, *dateColumn > 1494410783152415214 AND dateColumn < 1494497183142514872*
+*$__unixEpochNanoFrom()* | Will be replaced by the start of the currently active time selection as nanosecond timestamp. For example, *1494410783152415214*
+*$__unixEpochNanoTo()* | Will be replaced by the end of the currently active time selection as nanosecond timestamp. For example, *1494497183142514872*
 *$__unixEpochGroup(dateColumn,'5m', [fillmode])* | Same as $__timeGroup but for times stored as unix timestamp (only available in Grafana 5.3+).
 *$__unixEpochGroupAlias(dateColumn,'5m', [fillmode])* | Same as above but also adds a column alias (only available in Grafana 5.3+).
 
@@ -297,7 +300,7 @@ Any series lacking a value in a 3 minute window will have a value of zero which 
 
 Instead of hard-coding things like server, application and sensor name in you metric queries you can use variables in their place. Variables are shown as dropdown select boxes at the top of the dashboard. These dropdowns makes it easy to change the data being displayed in your dashboard.
 
-Checkout the [Templating]({{< relref "reference/templating.md" >}}) documentation for an introduction to the templating feature and the different types of template variables.
+Checkout the [Templating]({{< relref "../../reference/templating.md" >}}) documentation for an introduction to the templating feature and the different types of template variables.
 
 ### Query Variable
 
@@ -367,7 +370,7 @@ Grafana automatically creates a quoted, comma-separated string for multi-value v
 
 `${servers:csv}`
 
-Read more about variable formatting options in the [Variables]({{< relref "reference/templating.md#advanced-formatting-options" >}}) documentation.
+Read more about variable formatting options in the [Variables]({{< relref "../../reference/templating.md#advanced-formatting-options" >}}) documentation.
 
 ## Annotations
 

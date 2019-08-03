@@ -1,5 +1,6 @@
 import { SingleStatCtrl } from '../module';
-import moment from 'moment';
+import { dateTime } from '@grafana/data';
+import { LinkSrv } from 'app/features/panel/panellinks/link_srv';
 
 describe('SingleStatCtrl', () => {
   const ctx = {} as any;
@@ -14,6 +15,8 @@ describe('SingleStatCtrl', () => {
     get: () => {},
   };
 
+  const $sanitize = {};
+
   SingleStatCtrl.prototype.panel = {
     events: {
       on: () => {},
@@ -27,11 +30,12 @@ describe('SingleStatCtrl', () => {
     on: () => {},
   };
 
-  function singleStatScenario(desc, func) {
+  function singleStatScenario(desc: string, func: any) {
     describe(desc, () => {
-      ctx.setup = setupFunc => {
+      ctx.setup = (setupFunc: any) => {
         beforeEach(() => {
-          ctx.ctrl = new SingleStatCtrl($scope, $injector, {});
+          // @ts-ignore
+          ctx.ctrl = new SingleStatCtrl($scope, $injector, {} as LinkSrv, $sanitize);
           setupFunc();
           ctx.ctrl.onDataReceived(ctx.data);
           ctx.data = ctx.ctrl.data;
@@ -42,7 +46,7 @@ describe('SingleStatCtrl', () => {
     });
   }
 
-  singleStatScenario('with defaults', ctx => {
+  singleStatScenario('with defaults', (ctx: any) => {
     ctx.setup(() => {
       ctx.data = [{ target: 'test.cpu1', datapoints: [[10, 1], [20, 2]] }];
     });
@@ -57,7 +61,7 @@ describe('SingleStatCtrl', () => {
     });
   });
 
-  singleStatScenario('showing serie name instead of value', ctx => {
+  singleStatScenario('showing serie name instead of value', (ctx: any) => {
     ctx.setup(() => {
       ctx.data = [{ target: 'test.cpu1', datapoints: [[10, 1], [20, 2]] }];
       ctx.ctrl.panel.valueName = 'name';
@@ -73,7 +77,7 @@ describe('SingleStatCtrl', () => {
     });
   });
 
-  singleStatScenario('showing last iso time instead of value', ctx => {
+  singleStatScenario('showing last iso time instead of value', (ctx: any) => {
     ctx.setup(() => {
       ctx.data = [{ target: 'test.cpu1', datapoints: [[10, 12], [20, 1505634997920]] }];
       ctx.ctrl.panel.valueName = 'last_time';
@@ -87,11 +91,11 @@ describe('SingleStatCtrl', () => {
     });
 
     it('should set formatted value', () => {
-      expect(moment(ctx.data.valueFormatted).valueOf()).toBe(1505634997000);
+      expect(dateTime(ctx.data.valueFormatted).valueOf()).toBe(1505634997000);
     });
   });
 
-  singleStatScenario('showing last iso time instead of value (in UTC)', ctx => {
+  singleStatScenario('showing last iso time instead of value (in UTC)', (ctx: any) => {
     ctx.setup(() => {
       ctx.data = [{ target: 'test.cpu1', datapoints: [[10, 12], [20, 5000]] }];
       ctx.ctrl.panel.valueName = 'last_time';
@@ -104,7 +108,7 @@ describe('SingleStatCtrl', () => {
     });
   });
 
-  singleStatScenario('showing last us time instead of value', ctx => {
+  singleStatScenario('showing last us time instead of value', (ctx: any) => {
     ctx.setup(() => {
       ctx.data = [{ target: 'test.cpu1', datapoints: [[10, 12], [20, 1505634997920]] }];
       ctx.ctrl.panel.valueName = 'last_time';
@@ -118,11 +122,11 @@ describe('SingleStatCtrl', () => {
     });
 
     it('should set formatted value', () => {
-      expect(ctx.data.valueFormatted).toBe(moment(1505634997920).format('MM/DD/YYYY h:mm:ss a'));
+      expect(ctx.data.valueFormatted).toBe(dateTime(1505634997920).format('MM/DD/YYYY h:mm:ss a'));
     });
   });
 
-  singleStatScenario('showing last us time instead of value (in UTC)', ctx => {
+  singleStatScenario('showing last us time instead of value (in UTC)', (ctx: any) => {
     ctx.setup(() => {
       ctx.data = [{ target: 'test.cpu1', datapoints: [[10, 12], [20, 5000]] }];
       ctx.ctrl.panel.valueName = 'last_time';
@@ -135,7 +139,7 @@ describe('SingleStatCtrl', () => {
     });
   });
 
-  singleStatScenario('showing last time from now instead of value', ctx => {
+  singleStatScenario('showing last time from now instead of value', (ctx: any) => {
     ctx.setup(() => {
       ctx.data = [{ target: 'test.cpu1', datapoints: [[10, 12], [20, 1505634997920]] }];
       ctx.ctrl.panel.valueName = 'last_time';
@@ -152,7 +156,7 @@ describe('SingleStatCtrl', () => {
     });
   });
 
-  singleStatScenario('showing last time from now instead of value (in UTC)', ctx => {
+  singleStatScenario('showing last time from now instead of value (in UTC)', (ctx: any) => {
     ctx.setup(() => {
       ctx.data = [{ target: 'test.cpu1', datapoints: [[10, 12], [20, 1505634997920]] }];
       ctx.ctrl.panel.valueName = 'last_time';
@@ -164,24 +168,27 @@ describe('SingleStatCtrl', () => {
     });
   });
 
-  singleStatScenario('MainValue should use same number for decimals as displayed when checking thresholds', ctx => {
-    ctx.setup(() => {
-      ctx.data = [{ target: 'test.cpu1', datapoints: [[99.999, 1], [99.99999, 2]] }];
-      ctx.ctrl.panel.valueName = 'avg';
-      ctx.ctrl.panel.format = 'none';
-    });
+  singleStatScenario(
+    'MainValue should use same number for decimals as displayed when checking thresholds',
+    (ctx: any) => {
+      ctx.setup(() => {
+        ctx.data = [{ target: 'test.cpu1', datapoints: [[99.999, 1], [99.99999, 2]] }];
+        ctx.ctrl.panel.valueName = 'avg';
+        ctx.ctrl.panel.format = 'none';
+      });
 
-    it('Should be rounded', () => {
-      expect(ctx.data.value).toBe(99.999495);
-      expect(ctx.data.valueRounded).toBe(100);
-    });
+      it('Should be rounded', () => {
+        expect(ctx.data.value).toBe(99.999495);
+        expect(ctx.data.valueRounded).toBe(100);
+      });
 
-    it('should set formatted value', () => {
-      expect(ctx.data.valueFormatted).toBe('100');
-    });
-  });
+      it('should set formatted value', () => {
+        expect(ctx.data.valueFormatted).toBe('100');
+      });
+    }
+  );
 
-  singleStatScenario('When value to text mapping is specified', ctx => {
+  singleStatScenario('When value to text mapping is specified', (ctx: any) => {
     ctx.setup(() => {
       ctx.data = [{ target: 'test.cpu1', datapoints: [[9.9, 1]] }];
       ctx.ctrl.panel.valueMaps = [{ value: '10', text: 'OK' }];
@@ -200,7 +207,7 @@ describe('SingleStatCtrl', () => {
     });
   });
 
-  singleStatScenario('When range to text mapping is specified for first range', ctx => {
+  singleStatScenario('When range to text mapping is specified for first range', (ctx: any) => {
     ctx.setup(() => {
       ctx.data = [{ target: 'test.cpu1', datapoints: [[41, 50]] }];
       ctx.ctrl.panel.mappingType = 2;
@@ -212,7 +219,7 @@ describe('SingleStatCtrl', () => {
     });
   });
 
-  singleStatScenario('When range to text mapping is specified for other ranges', ctx => {
+  singleStatScenario('When range to text mapping is specified for other ranges', (ctx: any) => {
     ctx.setup(() => {
       ctx.data = [{ target: 'test.cpu1', datapoints: [[65, 75]] }];
       ctx.ctrl.panel.mappingType = 2;
@@ -233,7 +240,7 @@ describe('SingleStatCtrl', () => {
       },
     ];
 
-    singleStatScenario('with default values', ctx => {
+    singleStatScenario('with default values', (ctx: any) => {
       ctx.setup(() => {
         ctx.data = tableData;
         ctx.ctrl.panel = {
@@ -253,7 +260,7 @@ describe('SingleStatCtrl', () => {
       });
     });
 
-    singleStatScenario('When table data has multiple columns', ctx => {
+    singleStatScenario('When table data has multiple columns', (ctx: any) => {
       ctx.setup(() => {
         ctx.data = tableData;
         ctx.ctrl.panel.tableColumn = '';
@@ -264,25 +271,28 @@ describe('SingleStatCtrl', () => {
       });
     });
 
-    singleStatScenario('MainValue should use same number for decimals as displayed when checking thresholds', ctx => {
-      ctx.setup(() => {
-        ctx.data = tableData;
-        ctx.data[0].rows[0] = [1492759673649, 'ignore1', 99.99999, 'ignore2'];
-        ctx.ctrl.panel.mappingType = 0;
-        ctx.ctrl.panel.tableColumn = 'mean';
-      });
+    singleStatScenario(
+      'MainValue should use same number for decimals as displayed when checking thresholds',
+      (ctx: any) => {
+        ctx.setup(() => {
+          ctx.data = tableData;
+          ctx.data[0].rows[0] = [1492759673649, 'ignore1', 99.99999, 'ignore2'];
+          ctx.ctrl.panel.mappingType = 0;
+          ctx.ctrl.panel.tableColumn = 'mean';
+        });
 
-      it('Should be rounded', () => {
-        expect(ctx.data.value).toBe(99.99999);
-        expect(ctx.data.valueRounded).toBe(100);
-      });
+        it('Should be rounded', () => {
+          expect(ctx.data.value).toBe(99.99999);
+          expect(ctx.data.valueRounded).toBe(100);
+        });
 
-      it('should set formatted falue', () => {
-        expect(ctx.data.valueFormatted).toBe('100');
-      });
-    });
+        it('should set formatted falue', () => {
+          expect(ctx.data.valueFormatted).toBe('100');
+        });
+      }
+    );
 
-    singleStatScenario('When value to text mapping is specified', ctx => {
+    singleStatScenario('When value to text mapping is specified', (ctx: any) => {
       ctx.setup(() => {
         ctx.data = tableData;
         ctx.data[0].rows[0] = [1492759673649, 'ignore1', 9.9, 'ignore2'];
@@ -304,7 +314,7 @@ describe('SingleStatCtrl', () => {
       });
     });
 
-    singleStatScenario('When range to text mapping is specified for first range', ctx => {
+    singleStatScenario('When range to text mapping is specified for first range', (ctx: any) => {
       ctx.setup(() => {
         ctx.data = tableData;
         ctx.data[0].rows[0] = [1492759673649, 'ignore1', 41, 'ignore2'];
@@ -318,7 +328,7 @@ describe('SingleStatCtrl', () => {
       });
     });
 
-    singleStatScenario('When range to text mapping is specified for other ranges', ctx => {
+    singleStatScenario('When range to text mapping is specified for other ranges', (ctx: any) => {
       ctx.setup(() => {
         ctx.data = tableData;
         ctx.data[0].rows[0] = [1492759673649, 'ignore1', 65, 'ignore2'];
@@ -332,7 +342,7 @@ describe('SingleStatCtrl', () => {
       });
     });
 
-    singleStatScenario('When value is string', ctx => {
+    singleStatScenario('When value is string', (ctx: any) => {
       ctx.setup(() => {
         ctx.data = tableData;
         ctx.data[0].rows[0] = [1492759673649, 'ignore1', 65, 'ignore2'];
@@ -344,7 +354,7 @@ describe('SingleStatCtrl', () => {
       });
     });
 
-    singleStatScenario('When value is zero', ctx => {
+    singleStatScenario('When value is zero', (ctx: any) => {
       ctx.setup(() => {
         ctx.data = tableData;
         ctx.data[0].rows[0] = [1492759673649, 'ignore1', 0, 'ignore2'];

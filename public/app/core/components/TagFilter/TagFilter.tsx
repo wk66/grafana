@@ -1,29 +1,35 @@
+// Libraries
 import React from 'react';
-import AsyncSelect from 'react-select/lib/Async';
+// @ts-ignore
+import { components } from '@torkelo/react-select';
+// @ts-ignore
+import AsyncSelect from '@torkelo/react-select/lib/Async';
+
+// Components
 import { TagOption } from './TagOption';
 import { TagBadge } from './TagBadge';
-import IndicatorsContainer from 'app/core/components/Picker/IndicatorsContainer';
-import NoOptionsMessage from 'app/core/components/Picker/NoOptionsMessage';
-import { components } from 'react-select';
-import ResetStyles from 'app/core/components/Picker/ResetStyles';
+import { NoOptionsMessage, IndicatorsContainer, resetSelectStyles } from '@grafana/ui';
+import { escapeStringForRegex } from '../FilterInput/FilterInput';
+
+export interface TermCount {
+  term: string;
+  count: number;
+}
 
 export interface Props {
   tags: string[];
-  tagOptions: () => any;
-  onSelect: (tag: string) => void;
+  tagOptions: () => Promise<TermCount[]>;
+  onChange: (tags: string[]) => void;
 }
 
 export class TagFilter extends React.Component<Props, any> {
   inlineTags: boolean;
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
-
-    this.searchTags = this.searchTags.bind(this);
-    this.onChange = this.onChange.bind(this);
   }
 
-  searchTags(query) {
+  onLoadOptions = (query: string) => {
     return this.props.tagOptions().then(options => {
       return options.map(option => ({
         value: option.term,
@@ -31,35 +37,41 @@ export class TagFilter extends React.Component<Props, any> {
         count: option.count,
       }));
     });
-  }
+  };
 
-  onChange(newTags) {
-    this.props.onSelect(newTags);
-  }
+  onChange = (newTags: any[]) => {
+    this.props.onChange(newTags.map(tag => tag.value));
+  };
 
   render() {
+    const tags = this.props.tags.map(tag => ({ value: tag, label: tag, count: 0 }));
+
     const selectOptions = {
       classNamePrefix: 'gf-form-select-box',
       isMulti: true,
       defaultOptions: true,
-      loadOptions: this.searchTags,
+      loadOptions: this.onLoadOptions,
       onChange: this.onChange,
       className: 'gf-form-input gf-form-input--form-dropdown',
       placeholder: 'Tags',
       loadingMessage: () => 'Loading...',
       noOptionsMessage: () => 'No tags found',
-      getOptionValue: i => i.value,
-      getOptionLabel: i => i.label,
-      value: this.props.tags,
-      styles: ResetStyles,
+      getOptionValue: (i: any) => i.value,
+      getOptionLabel: (i: any) => i.label,
+      value: tags,
+      styles: resetSelectStyles(),
+      filterOption: (option: any, searchQuery: string) => {
+        const regex = RegExp(escapeStringForRegex(searchQuery), 'i');
+        return regex.test(option.value);
+      },
       components: {
         Option: TagOption,
         IndicatorsContainer,
         NoOptionsMessage,
-        MultiValueLabel: () => {
+        MultiValueLabel: (): any => {
           return null; // We want the whole tag to be clickable so we use MultiValueRemove instead
         },
-        MultiValueRemove: props => {
+        MultiValueRemove: (props: any) => {
           const { data } = props;
 
           return (

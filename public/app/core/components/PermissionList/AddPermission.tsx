@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
-import { UserPicker } from 'app/core/components/Picker/UserPicker';
-import { TeamPicker, Team } from 'app/core/components/Picker/TeamPicker';
-import DescriptionPicker, { OptionWithDescription } from 'app/core/components/Picker/DescriptionPicker';
+import { UserPicker } from 'app/core/components/Select/UserPicker';
+import { TeamPicker, Team } from 'app/core/components/Select/TeamPicker';
+import { Select } from '@grafana/ui';
+import { SelectableValue } from '@grafana/data';
 import { User } from 'app/types';
 import {
   dashboardPermissionLevels,
@@ -22,7 +23,7 @@ class AddPermissions extends Component<Props, NewDashboardAclItem> {
     showPermissionLevels: true,
   };
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     this.state = this.getCleanState();
   }
@@ -36,7 +37,7 @@ class AddPermissions extends Component<Props, NewDashboardAclItem> {
     };
   }
 
-  onTypeChanged = evt => {
+  onTypeChanged = (evt: any) => {
     const type = evt.target.value as AclTarget;
 
     switch (type) {
@@ -61,11 +62,11 @@ class AddPermissions extends Component<Props, NewDashboardAclItem> {
     this.setState({ teamId: team && !Array.isArray(team) ? team.id : 0 });
   };
 
-  onPermissionChanged = (permission: OptionWithDescription) => {
+  onPermissionChanged = (permission: SelectableValue<PermissionLevel>) => {
     this.setState({ permission: permission.value });
   };
 
-  onSubmit = async evt => {
+  onSubmit = async (evt: React.SyntheticEvent) => {
     evt.preventDefault();
     await this.props.onAddPermission(this.state);
     this.setState(this.getCleanState());
@@ -84,7 +85,7 @@ class AddPermissions extends Component<Props, NewDashboardAclItem> {
   render() {
     const { onCancel } = this.props;
     const newItem = this.state;
-    const pickerClassName = 'width-20';
+    const pickerClassName = 'min-width-20';
     const isValid = this.isValid();
     return (
       <div className="gf-form-inline cta-form">
@@ -121,16 +122,16 @@ class AddPermissions extends Component<Props, NewDashboardAclItem> {
             ) : null}
 
             <div className="gf-form">
-              <DescriptionPicker
-                optionsWithDesc={dashboardPermissionLevels}
-                onSelected={this.onPermissionChanged}
-                disabled={false}
-                className={'gf-form-select-box__control--menu-right'}
+              <Select
+                isSearchable={false}
+                options={dashboardPermissionLevels}
+                onChange={this.onPermissionChanged}
+                className="gf-form-select-box__control--menu-right"
               />
             </div>
 
             <div className="gf-form">
-              <button data-save-permission className="btn btn-success" type="submit" disabled={!isValid}>
+              <button data-save-permission className="btn btn-primary" type="submit" disabled={!isValid}>
                 Save
               </button>
             </div>

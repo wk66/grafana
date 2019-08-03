@@ -23,7 +23,7 @@ import (
 
 	"gopkg.in/macaron.v1"
 
-	"github.com/grafana/grafana/pkg/log"
+	"github.com/grafana/grafana/pkg/infra/log"
 	m "github.com/grafana/grafana/pkg/models"
 	"github.com/grafana/grafana/pkg/setting"
 )
@@ -115,6 +115,7 @@ func Recovery() macaron.Handler {
 
 				c.Data["Title"] = "Server Error"
 				c.Data["AppSubUrl"] = setting.AppSubUrl
+				c.Data["Theme"] = setting.DefaultTheme
 
 				if setting.Env == setting.DEV {
 					if theErr, ok := err.(error); ok {

@@ -1,7 +1,11 @@
-import { DataSource, NavModel, NavModelItem, PluginMeta } from 'app/types';
+import { DataSourceSettings, PluginType, PluginInclude } from '@grafana/ui';
+import { NavModel, NavModelItem } from '@grafana/data';
 import config from 'app/core/config';
+import { GenericDataSourcePlugin } from '../settings/PluginSettings';
 
-export function buildNavModel(dataSource: DataSource, pluginMeta: PluginMeta): NavModelItem {
+export function buildNavModel(dataSource: DataSourceSettings, plugin: GenericDataSourcePlugin): NavModelItem {
+  const pluginMeta = plugin.meta;
+
   const navModel = {
     img: pluginMeta.info.logos.large,
     id: 'datasource-' + dataSource.id,
@@ -15,10 +19,22 @@ export function buildNavModel(dataSource: DataSource, pluginMeta: PluginMeta): N
         icon: 'fa fa-fw fa-sliders',
         id: `datasource-settings-${dataSource.id}`,
         text: 'Settings',
-        url: `datasources/edit/${dataSource.id}`,
+        url: `datasources/edit/${dataSource.id}/`,
       },
     ],
   };
+
+  if (plugin.configPages) {
+    for (const page of plugin.configPages) {
+      navModel.children.push({
+        active: false,
+        text: page.title,
+        icon: page.icon,
+        url: `datasources/edit/${dataSource.id}/?page=${page.id}`,
+        id: `datasource-page-${page.id}`,
+      });
+    }
+  }
 
   if (pluginMeta.includes && hasDashboards(pluginMeta.includes)) {
     navModel.children.push({
@@ -48,6 +64,9 @@ export function getDataSourceLoadingNav(pageName: string): NavModel {
     {
       access: '',
       basicAuth: false,
+      basicAuthUser: '',
+      basicAuthPassword: '',
+      withCredentials: false,
       database: '',
       id: 1,
       isDefault: false,
@@ -62,25 +81,30 @@ export function getDataSourceLoadingNav(pageName: string): NavModel {
       user: '',
     },
     {
-      id: '1',
-      name: '',
-      info: {
-        author: {
-          name: '',
-          url: '',
+      meta: {
+        id: '1',
+        type: PluginType.datasource,
+        name: '',
+        info: {
+          author: {
+            name: '',
+            url: '',
+          },
+          description: '',
+          links: [{ name: '', url: '' }],
+          logos: {
+            large: '',
+            small: '',
+          },
+          screenshots: [],
+          updated: '',
+          version: '',
         },
-        description: '',
-        links: [''],
-        logos: {
-          large: '',
-          small: '',
-        },
-        screenshots: '',
-        updated: '',
-        version: '',
+        includes: [],
+        module: '',
+        baseUrl: '',
       },
-      includes: [{ type: '', name: '', path: '' }],
-    }
+    } as GenericDataSourcePlugin
   );
 
   let node: NavModelItem;
@@ -100,10 +124,10 @@ export function getDataSourceLoadingNav(pageName: string): NavModel {
   };
 }
 
-function hasDashboards(includes) {
+function hasDashboards(includes: PluginInclude[]): boolean {
   return (
-    includes.filter(include => {
+    includes.find(include => {
       return include.type === 'dashboard';
-    }).length > 0
+    }) !== undefined
   );
 }

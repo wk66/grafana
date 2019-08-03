@@ -1,10 +1,9 @@
 import React, { PureComponent } from 'react';
 
-import { Label } from 'app/core/components/Label/Label';
-import SimplePicker from 'app/core/components/Picker/SimplePicker';
-import { getBackendSrv, BackendSrv } from 'app/core/services/backend_srv';
+import { FormLabel, Select } from '@grafana/ui';
 
-import { DashboardSearchHit } from 'app/types';
+import { DashboardSearchHit, DashboardSearchHitType } from 'app/types';
+import { getBackendSrv } from 'app/core/services/backend_srv';
 
 export interface Props {
   resourceUri: string;
@@ -17,18 +16,18 @@ export interface State {
   dashboards: DashboardSearchHit[];
 }
 
-const themes = [{ value: '', text: 'Default' }, { value: 'dark', text: 'Dark' }, { value: 'light', text: 'Light' }];
+const themes = [{ value: '', label: 'Default' }, { value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }];
 
 const timezones = [
-  { value: '', text: 'Default' },
-  { value: 'browser', text: 'Local browser time' },
-  { value: 'utc', text: 'UTC' },
+  { value: '', label: 'Default' },
+  { value: 'browser', label: 'Local browser time' },
+  { value: 'utc', label: 'UTC' },
 ];
 
 export class SharedPreferences extends PureComponent<Props, State> {
-  backendSrv: BackendSrv = getBackendSrv();
+  backendSrv = getBackendSrv();
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     this.state = {
@@ -42,6 +41,21 @@ export class SharedPreferences extends PureComponent<Props, State> {
   async componentDidMount() {
     const prefs = await this.backendSrv.get(`/api/${this.props.resourceUri}/preferences`);
     const dashboards = await this.backendSrv.search({ starred: true });
+    const defaultDashboardHit: DashboardSearchHit = {
+      id: 0,
+      title: 'Default',
+      tags: [],
+      type: '' as DashboardSearchHitType,
+      uid: '',
+      uri: '',
+      url: '',
+      folderId: 0,
+      folderTitle: '',
+      folderUid: '',
+      folderUrl: '',
+      isStarred: false,
+      slug: '',
+    };
 
     if (prefs.homeDashboardId > 0 && !dashboards.find(d => d.id === prefs.homeDashboardId)) {
       const missing = await this.backendSrv.search({ dashboardIds: [prefs.homeDashboardId] });
@@ -54,11 +68,11 @@ export class SharedPreferences extends PureComponent<Props, State> {
       homeDashboardId: prefs.homeDashboardId,
       theme: prefs.theme,
       timezone: prefs.timezone,
-      dashboards: [{ id: 0, title: 'Default', tags: [], type: '', uid: '', uri: '', url: '' }, ...dashboards],
+      dashboards: [defaultDashboardHit, ...dashboards],
     });
   }
 
-  onSubmitForm = async event => {
+  onSubmitForm = async (event: React.SyntheticEvent) => {
     event.preventDefault();
 
     const { homeDashboardId, theme, timezone } = this.state;
@@ -91,45 +105,43 @@ export class SharedPreferences extends PureComponent<Props, State> {
         <h3 className="page-heading">Preferences</h3>
         <div className="gf-form">
           <span className="gf-form-label width-11">UI Theme</span>
-          <SimplePicker
+          <Select
+            isSearchable={false}
             value={themes.find(item => item.value === theme)}
             options={themes}
-            getOptionValue={i => i.value}
-            getOptionLabel={i => i.text}
-            onSelected={theme => this.onThemeChanged(theme.value)}
+            onChange={theme => this.onThemeChanged(theme.value)}
             width={20}
           />
         </div>
         <div className="gf-form">
-          <Label
+          <FormLabel
             width={11}
             tooltip="Not finding dashboard you want? Star it first, then it should appear in this select box."
           >
             Home Dashboard
-          </Label>
-          <SimplePicker
+          </FormLabel>
+          <Select
             value={dashboards.find(dashboard => dashboard.id === homeDashboardId)}
             getOptionValue={i => i.id}
             getOptionLabel={i => i.title}
-            onSelected={(dashboard: DashboardSearchHit) => this.onHomeDashboardChanged(dashboard.id)}
+            onChange={(dashboard: DashboardSearchHit) => this.onHomeDashboardChanged(dashboard.id)}
             options={dashboards}
-            placeholder="Chose default dashboard"
+            placeholder="Choose default dashboard"
             width={20}
           />
         </div>
         <div className="gf-form">
           <label className="gf-form-label width-11">Timezone</label>
-          <SimplePicker
+          <Select
+            isSearchable={false}
             value={timezones.find(item => item.value === timezone)}
-            getOptionValue={i => i.value}
-            getOptionLabel={i => i.text}
-            onSelected={timezone => this.onTimeZoneChanged(timezone.value)}
+            onChange={timezone => this.onTimeZoneChanged(timezone.value)}
             options={timezones}
             width={20}
           />
         </div>
         <div className="gf-form-button-row">
-          <button type="submit" className="btn btn-success">
+          <button type="submit" className="btn btn-primary">
             Save
           </button>
         </div>

@@ -19,11 +19,9 @@ module.exports = merge(common, {
     light: './public/sass/grafana.light.scss',
   },
 
-  output: {
-    path: path.resolve(__dirname, '../../public/build'),
-    filename: '[name].[hash].js',
-    // Keep publicPath relative for host.com/grafana/ deployments
-    publicPath: "public/build/",
+  // If we enabled watch option via CLI
+  watchOptions: {
+    ignored: /node_modules/
   },
 
   module: {
@@ -50,7 +48,7 @@ module.exports = merge(common, {
           },
         },
       },
-      require('./sass.rule.js')({ sourceMap: false, minimize: false, preserveUrl: false }),
+      require('./sass.rule.js')({ sourceMap: false, preserveUrl: false }),
       {
         test: /\.(png|jpg|gif|ttf|eot|svg|woff(2)?)(\?[a-z0-9=&.]+)?$/,
         loader: 'file-loader'
@@ -58,34 +56,15 @@ module.exports = merge(common, {
     ]
   },
 
-  optimization: {
-    splitChunks: {
-      cacheGroups: {
-        manifest: {
-          chunks: "initial",
-          test: "vendor",
-          name: "vendor",
-          enforce: true
-        },
-        vendor: {
-          chunks: "initial",
-          test: "vendor",
-          name: "vendor",
-          enforce: true
-        }
-      }
-    }
-  },
-
   plugins: [
-    new CleanWebpackPlugin('../../public/build', { allowExternal: true }),
+    new CleanWebpackPlugin(),
     new MiniCssExtractPlugin({
       filename: "grafana.[name].[hash].css"
     }),
     new HtmlWebpackPlugin({
       filename: path.resolve(__dirname, '../../public/views/error.html'),
       template: path.resolve(__dirname, '../../public/views/error-template.html'),
-      inject: 'false',
+      inject: false,
     }),
     new HtmlWebpackPlugin({
       filename: path.resolve(__dirname, '../../public/views/index.html'),

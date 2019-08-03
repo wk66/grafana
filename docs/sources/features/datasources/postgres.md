@@ -11,6 +11,8 @@ weight = 7
 
 # Using PostgreSQL in Grafana
 
+> NOTE: In **9.5.18, 9.4.23, 9.6.14, 10.9, 11.4, 12-beta2** versions of PostgreSQL has a [bug](https://www.postgresql.org/message-id/flat/28827.1561082086%40sss.pgh.pa.us#df2287bd7481153984bef6bab40af0db) which prevents execution of multiple column modifications via `ALTER TABLE` statement. Because Grafana uses it during initial database set up and since PostgreSQL has [fixed](https://github.com/postgres/postgres/commit/f946a409143d01951411382fbc3c91c7eb640094) this issue, Grafana **does not support these versions**
+
 Grafana ships with a built-in PostgreSQL data source plugin that allows you to query and visualize data from a PostgreSQL compatible database.
 
 ## Adding the data source
@@ -154,6 +156,9 @@ Macro example | Description
 *$__unixEpochFilter(dateColumn)* | Will be replaced by a time range filter using the specified column name with times represented as unix timestamps. For example, *dateColumn >= 1494410783 AND dateColumn <= 1494497183*
 *$__unixEpochFrom()* | Will be replaced by the start of the currently active time selection as unix timestamp. For example, *1494410783*
 *$__unixEpochTo()* | Will be replaced by the end of the currently active time selection as unix timestamp. For example, *1494497183*
+*$__unixEpochNanoFilter(dateColumn)* | Will be replaced by a time range filter using the specified column name with times represented as nanosecond timestamps. For example, *dateColumn >= 1494410783152415214 AND dateColumn <= 1494497183142514872*
+*$__unixEpochNanoFrom()* | Will be replaced by the start of the currently active time selection as nanosecond timestamp. For example, *1494410783152415214*
+*$__unixEpochNanoTo()* | Will be replaced by the end of the currently active time selection as unix timestamp. For example, *1494497183142514872*
 *$__unixEpochGroup(dateColumn,'5m', [fillmode])* | Same as $__timeGroup, but for times stored as unix timestamp (only available in Grafana 5.3+).
 *$__unixEpochGroupAlias(dateColumn,'5m', [fillmode])* | Same as above, but also adds a column alias (only available in Grafana 5.3+).
 
@@ -239,7 +244,7 @@ ORDER BY time
 
 Instead of hard-coding things like server, application and sensor name in you metric queries you can use variables in their place. Variables are shown as dropdown select boxes at the top of the dashboard. These dropdowns makes it easy to change the data being displayed in your dashboard.
 
-Checkout the [Templating]({{< relref "reference/templating.md" >}}) documentation for an introduction to the templating feature and the different types of template variables.
+Checkout the [Templating]({{< relref "../../reference/templating.md" >}}) documentation for an introduction to the templating feature and the different types of template variables.
 
 ### Query Variable
 
@@ -315,7 +320,7 @@ Grafana automatically creates a quoted, comma-separated string for multi-value v
 
 `${servers:csv}`
 
-Read more about variable formatting options in the [Variables]({{< relref "reference/templating.md#advanced-formatting-options" >}}) documentation.
+Read more about variable formatting options in the [Variables]({{< relref "../../reference/templating.md#advanced-formatting-options" >}}) documentation.
 
 ## Annotations
 

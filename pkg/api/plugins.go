@@ -39,7 +39,7 @@ func (hs *HTTPServer) GetPluginList(c *m.ReqContext) Response {
 			continue
 		}
 
-		if pluginDef.State == plugins.PluginStateAlpha && !hs.Cfg.EnableAlphaPanels {
+		if pluginDef.State == plugins.PluginStateAlpha && !hs.Cfg.PluginsEnableAlpha {
 			continue
 		}
 
@@ -47,6 +47,7 @@ func (hs *HTTPServer) GetPluginList(c *m.ReqContext) Response {
 			Id:            pluginDef.Id,
 			Name:          pluginDef.Name,
 			Type:          pluginDef.Type,
+			Category:      pluginDef.Category,
 			Info:          &pluginDef.Info,
 			LatestVersion: pluginDef.GrafanaNetVersion,
 			HasUpdate:     pluginDef.GrafanaNetHasUpdate,
@@ -60,7 +61,7 @@ func (hs *HTTPServer) GetPluginList(c *m.ReqContext) Response {
 		}
 
 		if listItem.DefaultNavUrl == "" || !listItem.Enabled {
-			listItem.DefaultNavUrl = setting.AppSubUrl + "/plugins/" + listItem.Id + "/edit"
+			listItem.DefaultNavUrl = setting.AppSubUrl + "/plugins/" + listItem.Id + "/"
 		}
 
 		// filter out disabled
@@ -162,6 +163,14 @@ func GetPluginMarkdown(c *m.ReqContext) Response {
 		}
 
 		return Error(500, "Could not get markdown file", err)
+	}
+
+	// fallback try readme
+	if len(content) == 0 {
+		content, err = plugins.GetPluginMarkdown(pluginID, "readme")
+		if err != nil {
+			return Error(501, "Could not get markdown file", err)
+		}
 	}
 
 	resp := Respond(200, content)

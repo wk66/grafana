@@ -1,19 +1,23 @@
 import angular from 'angular';
 
 const directiveModule = angular.module('grafana.directives');
-const directiveCache = {};
+const directiveCache: any = {};
 
 /** @ngInject */
-function panelEditorTab(dynamicDirectiveSrv) {
+function panelEditorTab(dynamicDirectiveSrv: any) {
   return dynamicDirectiveSrv.create({
     scope: {
       ctrl: '=',
       editorTab: '=',
-      index: '=',
     },
-    directive: scope => {
+    directive: (scope: any) => {
       const pluginId = scope.ctrl.pluginId;
-      const tabName = scope.editorTab.title.toLowerCase().replace(' ', '-');
+      const tabName = scope.editorTab.title
+        .toLowerCase()
+        .replace(' ', '-')
+        .replace('&', '')
+        .replace(' ', '')
+        .replace(' ', '-');
 
       if (directiveCache[pluginId]) {
         if (directiveCache[pluginId][tabName]) {

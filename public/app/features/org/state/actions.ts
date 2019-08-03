@@ -1,11 +1,8 @@
-import { ThunkAction } from 'redux-thunk';
-import { Organization, StoreState } from 'app/types';
-import { getBackendSrv } from 'app/core/services/backend_srv';
-
-type ThunkResult<R> = ThunkAction<R, StoreState, undefined, any>;
+import { Organization, ThunkResult } from 'app/types';
+import { getBackendSrv } from '@grafana/runtime';
 
 export enum ActionTypes {
-  LoadOrganization = 'LOAD_ORGANISATION',
+  LoadOrganization = 'LOAD_ORGANIZATION',
   SetOrganizationName = 'SET_ORGANIZATION_NAME',
 }
 
@@ -19,9 +16,9 @@ interface SetOrganizationNameAction {
   payload: string;
 }
 
-const organisationLoaded = (organisation: Organization) => ({
+const organizationLoaded = (organization: Organization) => ({
   type: ActionTypes.LoadOrganization,
-  payload: organisation,
+  payload: organization,
 });
 
 export const setOrganizationName = (orgName: string) => ({
@@ -31,16 +28,16 @@ export const setOrganizationName = (orgName: string) => ({
 
 export type Action = LoadOrganizationAction | SetOrganizationNameAction;
 
-export function loadOrganization(): ThunkResult<void> {
+export function loadOrganization(): ThunkResult<any> {
   return async dispatch => {
-    const organisationResponse = await getBackendSrv().get('/api/org');
-    dispatch(organisationLoaded(organisationResponse));
+    const organizationResponse = await getBackendSrv().get('/api/org');
+    dispatch(organizationLoaded(organizationResponse));
 
-    return organisationResponse;
+    return organizationResponse;
   };
 }
 
-export function updateOrganization() {
+export function updateOrganization(): ThunkResult<any> {
   return async (dispatch, getStore) => {
     const organization = getStore().organization.organization;
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 
+	"github.com/grafana/grafana/pkg/components/gtime"
 	"github.com/grafana/grafana/pkg/tsdb"
 )
 
@@ -61,11 +61,15 @@ func (m *mySqlMacroEngine) evaluateMacro(name string, args []string) (string, er
 		}
 
 		return fmt.Sprintf("%s BETWEEN FROM_UNIXTIME(%d) AND FROM_UNIXTIME(%d)", args[0], m.timeRange.GetFromAsSecondsEpoch(), m.timeRange.GetToAsSecondsEpoch()), nil
+	case "__timeFrom":
+		return fmt.Sprintf("FROM_UNIXTIME(%d)", m.timeRange.GetFromAsSecondsEpoch()), nil
+	case "__timeTo":
+		return fmt.Sprintf("FROM_UNIXTIME(%d)", m.timeRange.GetToAsSecondsEpoch()), nil
 	case "__timeGroup":
 		if len(args) < 2 {
 			return "", fmt.Errorf("macro %v needs time column and interval", name)
 		}
-		interval, err := time.ParseDuration(strings.Trim(args[1], `'"`))
+		interval, err := gtime.ParseInterval(strings.Trim(args[1], `'"`))
 		if err != nil {
 			return "", fmt.Errorf("error parsing interval %v", args[1])
 		}
@@ -87,11 +91,20 @@ func (m *mySqlMacroEngine) evaluateMacro(name string, args []string) (string, er
 			return "", fmt.Errorf("missing time column argument for macro %v", name)
 		}
 		return fmt.Sprintf("%s >= %d AND %s <= %d", args[0], m.timeRange.GetFromAsSecondsEpoch(), args[0], m.timeRange.GetToAsSecondsEpoch()), nil
+	case "__unixEpochNanoFilter":
+		if len(args) == 0 {
+			return "", fmt.Errorf("missing time column argument for macro %v", name)
+		}
+		return fmt.Sprintf("%s >= %d AND %s <= %d", args[0], m.timeRange.GetFromAsTimeUTC().UnixNano(), args[0], m.timeRange.GetToAsTimeUTC().UnixNano()), nil
+	case "__unixEpochNanoFrom":
+		return fmt.Sprintf("%d", m.timeRange.GetFromAsTimeUTC().UnixNano()), nil
+	case "__unixEpochNanoTo":
+		return fmt.Sprintf("%d", m.timeRange.GetToAsTimeUTC().UnixNano()), nil
 	case "__unixEpochGroup":
 		if len(args) < 2 {
 			return "", fmt.Errorf("macro %v needs time column and interval and optional fill value", name)
 		}
-		interval, err := time.ParseDuration(strings.Trim(args[1], `'`))
+		interval, err := gtime.ParseInterval(strings.Trim(args[1], `'`))
 		if err != nil {
 			return "", fmt.Errorf("error parsing interval %v", args[1])
 		}
